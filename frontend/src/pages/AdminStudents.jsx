@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import API from "../services/api";
 
 const AdminStudents = () => {
@@ -33,8 +34,20 @@ const AdminStudents = () => {
   const setStudentActionLoading = (id, action, val) =>
     setActionLoading((prev) => ({ ...prev, [`${id}_${action}`]: val }));
 
+  
+
   const handleBlock = async (studentId) => {
-    if (!window.confirm("Block this student?")) return;
+
+      const confirm = await Swal.fire({
+      title: "Block Student?",
+      text: "This student will not be able to access the system.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#1a1a2e",
+      cancelButtonColor: "#9ca3af",
+      confirmButtonText: "Yes, Block",
+    });
+    if (!confirm.isConfirmed) return;
     setStudentActionLoading(studentId, "block", true);
     try {
       await API.put(`/admin/users/${studentId}/block`);
@@ -43,16 +56,40 @@ const AdminStudents = () => {
           s._id === studentId ? { ...s, isBlocked: true } : s
         )
       );
+
+        Swal.fire({
+        title: "Blocked!",
+        text: "Student has been blocked successfully.",
+        icon: "success",
+        confirmButtonColor: "#1a1a2e",
+      });
+
+
+
     } catch (err) {
       console.error(err);
-      alert("Failed to block student");
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to block student.",
+        icon: "error",
+        confirmButtonColor: "#1a1a2e",
+      });
     } finally {
       setStudentActionLoading(studentId, "block", false);
     }
   };
 
   const handleUnblock = async (studentId) => {
-    if (!window.confirm("Unblock this student?")) return;
+    const confirm = await Swal.fire({
+      title: "Unblock Student?",
+      text: "This student will be able to access the system again.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#1a1a2e",
+      cancelButtonColor: "#9ca3af",
+      confirmButtonText: "Yes, Unblock",
+    });
+    if (!confirm.isConfirmed) return;
     setStudentActionLoading(studentId, "unblock", true);
     try {
       await API.put(`/admin/users/${studentId}/unblock`);
@@ -70,16 +107,41 @@ const AdminStudents = () => {
   };
 
   const handleSoftDelete = async (studentId) => {
-    if (!window.confirm("Soft delete this student?")) return;
+      const confirm = await Swal.fire({
+      title: "Delete Student?",
+      text: "This action will remove the student record.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#9ca3af",
+      confirmButtonText: "Yes, Delete",
+    });
+    
+    if (!confirm.isConfirmed) return;
     setStudentActionLoading(studentId, "delete", true);
+
+    
     try {
       await API.delete(`/admin/users/${studentId}/delete`);
       setStudents((prev) =>
         prev.filter((s) => s._id !== studentId)
       );
+            Swal.fire({
+        title: "Deleted!",
+        text: "Student has been removed successfully.",
+        icon: "success",
+        confirmButtonColor: "#1a1a2e",
+      });
+
     } catch (err) {
       console.error(err);
-      alert("Failed to delete student");
+            Swal.fire({
+        title: "Error",
+        text: "Failed to delete student",
+        icon: "error",
+        confirmButtonColor: "#dc2626",
+      });
+      
     } finally {
       setStudentActionLoading(studentId, "delete", false);
     }
