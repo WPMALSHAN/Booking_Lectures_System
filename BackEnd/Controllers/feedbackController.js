@@ -3,15 +3,27 @@ import Appointment from "../models/Appointment.js";
 
 export const submitFeedback = async (req, res) => {
   try {
-    if (req.user.role !== "student") return res.status(403).json({ message: "Only students can submit feedback" });
+    if (!req.user || req.user.role !== "student") {
+      return res.status(403).json({ message: "Only students can submit feedback" });
+    }
 
     const { rating, comment } = req.body;
     if (!rating) return res.status(400).json({ message: "Rating is required" });
 
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) return res.status(404).json({ message: "Appointment not found" });
-    if (appointment.student.toString() !== req.user.id) return res.status(403).json({ message: "You can only review your own appointments" });
-    if (appointment.status !== "completed") return res.status(400).json({ message: "Feedback allowed only after completion" });
+
+    if (!appointment.student) {
+      return res.status(400).json({ message: "Invalid appointment data" });
+    }
+
+    if (appointment.student.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You can only review your own appointments" });
+    }
+
+    if (appointment.status !== "completed") {
+      return res.status(400).json({ message: "Feedback allowed only after completion" });
+    }
 
     const existing = await Feedback.findOne({ appointment: appointment._id });
     if (existing) return res.status(400).json({ message: "Feedback already submitted" });
@@ -24,12 +36,13 @@ export const submitFeedback = async (req, res) => {
       comment
     });
 
-    appointment.isFeedbackSubmitted = true; // mark reviewed
+    appointment.isFeedbackSubmitted = true;
     await appointment.save();
 
     res.status(201).json({ message: "Feedback submitted successfully", feedback });
 
   } catch (error) {
+    console.error("🔥 ERROR:", error);
     res.status(500).json({ message: "Error submitting feedback", error: error.message });
   }
 };
