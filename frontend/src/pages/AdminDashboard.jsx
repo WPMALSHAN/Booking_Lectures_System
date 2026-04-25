@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import Footer from "../components/footer";   // ← your existing Footer component
+import Swal from "sweetalert2";
 
 const StatCard = ({ label, value, icon }) => (
   <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition">
@@ -53,6 +54,7 @@ const AdminDashboard = () => {
     { label: "Add Lecturer", icon: "👨‍🏫", path: "/admin/lecturers"     },
     { label: "Appointments", icon: "📅", path: "/admin/appointments"   },
     { label: "Feedback",     icon: "💬", path: "/admin/feedback"       },
+    { label: "Messages",     icon: "✉️", path: "/admin/chat"           },
   ];
 
   const activity = [
@@ -67,8 +69,9 @@ const AdminDashboard = () => {
     { label: "Dashboard",    path: "/admin-dashboard"    },
     { label: "Students",     path: "/admin/students"     },
     { label: "Lecturers",    path: "/admin/lecturers"    },
-    { label: "Appointments", path: "/admin/appointments" },
+    { label: "Appointments", path: "/admin-appointments" },
     { label: "Feedback",     path: "/admin/feedback"     },
+    { label: "Messages",     path: "/admin/chat"         },
   ];
 
   return (
