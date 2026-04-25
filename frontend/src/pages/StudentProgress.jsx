@@ -23,7 +23,11 @@ const BlueTooltip = ({ active, payload, label }) => {
 };
 
 /* ─── Stat Card ─── */
+<<<<<<< HEAD
 const StatCard = ({ icon, label, value, colorClass, bgClass, borderClass }) => (
+=======
+const StatCard = ({ icon, label, value, colorClass, bgClass, borderClass, ringClass }) => (
+>>>>>>> 76756af4de6936ccc0e1924604c02040004d70ce
   <div className={`flex-1 min-w-[160px] rounded-2xl p-7 text-center border ${bgClass} ${borderClass} shadow-sm hover:-translate-y-1 transition-all duration-200 group`}>
     <div className={`w-12 h-12 mx-auto mb-4 rounded-xl flex items-center justify-center text-xl shadow-sm border ${borderClass} ${bgClass} group-hover:scale-110 transition-transform duration-200`}>
       {icon}
