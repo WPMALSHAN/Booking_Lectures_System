@@ -248,3 +248,184 @@ export const getLecturerAppointments = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+/**
+ * @desc    Get all appointments (Admin only)
+ * @route   GET /api/appointments/admin/all
+ * @access  Private/Admin
+ */
+export const getAllAppointments = async (req, res) => {
+  try {
+    const {
+      status,
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      order = "desc",
+      search,
+      dateFrom,
+      dateTo,
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    // Status filter
+    if (status && status !== "all") {
+      filter.status = status;
+    }
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      filter.date = {};
+      if (dateFrom) filter.date.$gte = new Date(dateFrom);
+      if (dateTo) filter.date.$lte = new Date(dateTo);
+    }
+
+    // Search filter (student or lecturer name)
+    if (search) {
+      // You'll need to do a text search on populated fields
+      // This is handled after population
+    }
+
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const sortOrder = order === "desc" ? -1 : 1;
+
+    // Get appointments with populated data
+    let appointments = await Appointment.find(filter)
+      .populate({
+        path: "student",
+        select: "name email studentId",
+      })
+      .populate({
+        path: "lecturer",
+        select: "name email department",
+      })
+      .populate({
+        path: "availabilitySlot",
+        select: "day startTime endTime duration",
+      })
+      .sort({ [sortBy]: sortOrder })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    // Apply search filter if provided
+    if (search) {
+      const searchLower = search.toLowerCase();
+      appointments = appointments.filter(
+        (apt) =>
+          apt.student?.name?.toLowerCase().includes(searchLower) ||
+          apt.student?.email?.toLowerCase().includes(searchLower) ||
+          apt.lecturer?.name?.toLowerCase().includes(searchLower) ||
+          apt.lecturer?.email?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Get total count for pagination
+    const total = await Appointment.countDocuments(filter);
+
+    // Calculate statistics
+    const stats = await Appointment.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const statistics = {
+      total,
+      pending: stats.find((s) => s._id === "pending")?.count || 0,
+      approved: stats.find((s) => s._id === "approved")?.count || 0,
+      completed: stats.find((s) => s._id === "completed")?.count || 0,
+      cancelled: stats.find((s) => s._id === "cancelled")?.count || 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: appointments,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalItems: total,
+        itemsPerPage: parseInt(limit),
+      },
+      statistics,
+    });
+  } catch (error) {
+    console.error("Get all appointments error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch appointments",
+      error: error.message,
+    });
+  }
+};
+
+export const getAppointmentStatistics = async (req, res) => {
+  try {
+    const { period = "week" } = req.query;
+
+    // Calculate date range
+    const now = new Date();
+    let startDate;
+
+    switch (period) {
+      case "today":
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        break;
+      case "week":
+        startDate = new Date(now.setDate(now.getDate() - 7));
+        break;
+      case "month":
+        startDate = new Date(now.setMonth(now.getMonth() - 1));
+        break;
+      case "year":
+        startDate = new Date(now.setFullYear(now.getFullYear() - 1));
+        break;
+      default:
+        startDate = new Date(now.setDate(now.getDate() - 7));
+    }
+
+    const stats = await Appointment.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate },
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Recent appointments
+    const recentAppointments = await Appointment.find()
+      .populate("student", "name email")
+      .populate("lecturer", "name email")
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        statistics: stats,
+        recentAppointments,
+      },
+    });
+  } catch (error) {
+    console.error("Get statistics error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch statistics",
+      error: error.message,
+    });
+  }
+};

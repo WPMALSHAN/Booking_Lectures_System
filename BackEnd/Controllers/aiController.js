@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import Appointment from "../models/Appointment.js";
 import Availability from "../models/Availability.js";
 import Feedback from "../models/Feedback.js";
-import User from "../models/user.js";
+import User from "../models/User.js";
 
 /* =====================================
    AI Recommendation – Popular Slot

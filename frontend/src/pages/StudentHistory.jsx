@@ -3,6 +3,40 @@ import API from "../services/api";
 import Footer from "../components/footer";
 import { useNavigate } from "react-router-dom";
 
+/* ─── Status Badge ─── */
+const StatusBadge = ({ status }) => {
+  const config = {
+    approved:  { bg: "bg-blue-50",   text: "text-blue-600",   border: "border-blue-200",   dot: "bg-blue-500"   },
+    completed: { bg: "bg-emerald-50",text: "text-emerald-600",border: "border-emerald-200", dot: "bg-emerald-500"},
+    cancelled: { bg: "bg-red-50",    text: "text-red-500",    border: "border-red-200",     dot: "bg-red-400"    },
+    pending:   { bg: "bg-amber-50",  text: "text-amber-600",  border: "border-amber-200",   dot: "bg-amber-400"  },
+  };
+  const sc = config[status] || config.pending;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold border ${sc.bg} ${sc.text} ${sc.border}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+      {status}
+    </span>
+  );
+};
+
+/* ─── Stat Card ─── */
+const StatCard = ({ icon, label, value, bg, border, textColor }) => (
+  <div className={`flex-1 min-w-[130px] rounded-2xl p-5 text-center border ${bg} ${border} shadow-sm hover:-translate-y-1 transition-all duration-200`}>
+    <div className="text-2xl mb-2">{icon}</div>
+    <div className={`text-3xl font-extrabold font-mono tracking-tight ${textColor}`}>{value}</div>
+    <div className={`text-[11px] font-semibold tracking-widest uppercase mt-1 ${textColor} opacity-70`}>{label}</div>
+  </div>
+);
+
+/* ─── Field Block ─── */
+const Field = ({ label, value, mono }) => (
+  <div>
+    <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+    <p className={`text-sm text-slate-700 font-medium ${mono ? 'font-mono' : ''}`}>{value}</p>
+  </div>
+);
+
 const StudentHistory = () => {
   const [appointments, setAppointments] = useState([]);
   const navigate = useNavigate();
@@ -24,258 +58,174 @@ const StudentHistory = () => {
   const pending   = appointments.filter(a => a.status === "pending").length;
   const cancelled = appointments.filter(a => a.status === "cancelled").length;
 
-  const statusConfig = {
-    approved:  { bg: "rgba(59,130,246,0.12)",  border: "rgba(59,130,246,0.3)",  color: "#60a5fa",  dot: "#3b82f6"  },
-    completed: { bg: "rgba(34,197,94,0.10)",   border: "rgba(34,197,94,0.3)",   color: "#4ade80",  dot: "#22c55e"  },
-    cancelled: { bg: "rgba(239,68,68,0.10)",   border: "rgba(239,68,68,0.3)",   color: "#f87171",  dot: "#ef4444"  },
-    pending:   { bg: "rgba(234,179,8,0.10)",   border: "rgba(234,179,8,0.3)",   color: "#facc15",  dot: "#eab308"  },
-  };
-
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-white flex flex-col">
 
-        .sh-root { font-family: 'Sora', sans-serif; background: #020617; min-height: 100vh; color: #e2e8f0; display: flex; flex-direction: column; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
+      {/* ── Decorative Background ── */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-blue-100/40 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-blue-50/60 rounded-full blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.025]"
+          style={{ backgroundImage: 'radial-gradient(circle, #3b82f6 1px, transparent 1px)', backgroundSize: '32px 32px' }}
+        />
+      </div>
 
-        .grid-bg {
-          position: fixed; inset: 0; pointer-events: none; z-index: 0;
-          background-image:
-            linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
-          background-size: 48px 48px;
-        }
+      {/* ── Main ── */}
+      <div className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-6 py-10 flex flex-col gap-8">
 
-        .grad-text {
-          background: linear-gradient(90deg,#60a5fa,#a78bfa);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-
-        .stat-card {
-          flex: 1; min-width: 130px;
-          border-radius: 18px; padding: 22px 20px; text-align: center;
-          transition: all 0.25s ease;
-        }
-        .stat-card:hover { transform: translateY(-3px); }
-
-        .appt-card {
-          background: rgba(255,255,255,0.025);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 18px; padding: 24px 26px;
-          display: flex; flex-direction: column; gap: 16px;
-          transition: all 0.25s ease; position: relative; overflow: hidden;
-        }
-        .appt-card::before {
-          content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
-          background: linear-gradient(180deg,#3b82f6,#a78bfa);
-          border-radius:99px 0 0 99px; opacity:0; transition:opacity 0.25s;
-        }
-        .appt-card:hover { border-color: rgba(59,130,246,0.22); box-shadow: 0 12px 40px rgba(0,0,0,0.35); }
-        .appt-card:hover::before { opacity:1; }
-
-        .badge {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 4px 12px; border-radius: 99px;
-          font-size: 0.75rem; font-weight: 600;
-        }
-
-        .label { font-size: 0.72rem; color: #475569; font-weight: 500; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
-        .value { font-size: 0.9rem; color: #cbd5e1; }
-
-        .cancel-reason-box {
-          background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.2);
-          border-radius: 12px; padding: 12px 16px;
-        }
-        .cancel-history-box {
-          background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 12px; padding: 14px 16px;
-        }
-        .history-item {
-          font-size: 0.8rem; color: #64748b; padding: 6px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.04);
-          display: flex; gap: 8px; align-items: flex-start;
-        }
-        .history-item:last-child { border-bottom: none; padding-bottom: 0; }
-        .history-time { color: #334155; flex-shrink: 0; }
-
-        .btn-ghost {
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
-          color: #94a3b8; font-family: 'Sora', sans-serif;
-          border-radius: 12px; cursor: pointer; font-weight: 500; font-size: 0.85rem;
-          padding: 10px 18px; transition: all 0.2s ease;
-          display: inline-flex; align-items: center; gap: 8px;
-        }
-        .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: #e2e8f0; }
-
-        .btn-primary {
-          background: linear-gradient(135deg,#3b82f6,#1d4ed8);
-          box-shadow: 0 4px 16px rgba(59,130,246,0.3);
-          color: white; font-weight: 600; border: none; cursor: pointer;
-          border-radius: 12px; font-family: 'Sora', sans-serif; font-size: 0.85rem;
-          padding: 10px 20px; transition: all 0.2s ease;
-          display: inline-flex; align-items: center; gap: 8px;
-        }
-        .btn-primary:hover { background: linear-gradient(135deg,#60a5fa,#3b82f6); transform: translateY(-1px); }
-
-        .section-line { flex:1; height:1px; background: rgba(255,255,255,0.06); }
-        .section-title { font-size:1.1rem; font-weight:700; color:#f1f5f9; display:flex; align-items:center; gap:10px; }
-
-        .scroll-list { max-height: 140px; overflow-y: auto; }
-        .scroll-list::-webkit-scrollbar { width: 4px; }
-        .scroll-list::-webkit-scrollbar-track { background: transparent; }
-        .scroll-list::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.3); border-radius: 99px; }
-      `}</style>
-
-      <div className="sh-root">
-        <div className="grid-bg"></div>
-
-        <div style={{ position: 'relative', zIndex: 1, flex: 1, maxWidth: '1100px', margin: '0 auto', padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: '28px', width: '100%' }}>
-
-          {/* ── Header ── */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-            <div>
-              <p className="mono" style={{ fontSize: '0.7rem', color: '#3b82f6', letterSpacing: '0.15em', marginBottom: '4px' }}>STUDENT PORTAL</p>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: '#f1f5f9', lineHeight: 1.2 }}>
-                Appointment <span className="grad-text">History</span>
-              </h1>
-            </div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button className="btn-ghost" onClick={() => navigate("/student")}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Dashboard
-              </button>
-              <button className="btn-primary" onClick={() => navigate("/student-progress")}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 20V10M12 20V4M6 20v-6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                View Progress
-              </button>
-            </div>
-          </div>
-
-          {/* ── Stats ── */}
-          <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-            {[
-              { label: 'Total',     value: total,     icon: '📋', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.07)', vColor: '#f1f5f9', lColor: '#475569' },
-              { label: 'Approved',  value: approved,  icon: '✅', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.2)',   vColor: '#60a5fa', lColor: '#3b82f6' },
-              { label: 'Pending',   value: pending,   icon: '⏳', bg: 'rgba(234,179,8,0.08)',   border: 'rgba(234,179,8,0.2)',    vColor: '#facc15', lColor: '#eab308' },
-              { label: 'Cancelled', value: cancelled, icon: '❌', bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.2)',    vColor: '#f87171', lColor: '#ef4444' },
-            ].map(({ label, value, icon, bg, border, vColor, lColor }) => (
-              <div key={label} className="stat-card" style={{ background: bg, border: `1px solid ${border}` }}>
-                <div style={{ fontSize: '1.6rem', marginBottom: '8px' }}>{icon}</div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, color: vColor }}>{value}</div>
-                <div style={{ fontSize: '0.75rem', color: lColor, marginTop: '2px', fontWeight: 500 }}>{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Appointments ── */}
+        {/* ── Header ── */}
+        <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-              <span className="section-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="18" rx="2" stroke="#3b82f6" strokeWidth="2"/>
-                  <path d="M16 2v4M8 2v4M3 10h18" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                All Appointments
-              </span>
-              <div className="section-line"></div>
-              <span className="mono" style={{ fontSize: '0.75rem', color: '#334155', flexShrink: 0 }}>{total} records</span>
-            </div>
-
-            {appointments.length === 0 ? (
-              <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '20px', padding: '64px', textAlign: 'center' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>📭</div>
-                <p style={{ color: '#475569', fontSize: '0.95rem' }}>No appointment history found.</p>
-                <button className="btn-primary" style={{ marginTop: '20px' }} onClick={() => navigate("/book-appointment")}>
-                  + Book Appointment
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(460px, 1fr))', gap: '16px' }}>
-                {appointments.map((app) => {
-                  const sc = statusConfig[app.status] || statusConfig.pending;
-                  return (
-                    <div key={app._id} className="appt-card">
-
-                      {/* Card header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-                            🎓
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f1f5f9' }}>
-                              {app.lecturer?.firstname} {app.lecturer?.lastname}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: '#475569' }}>Lecturer</div>
-                          </div>
-                        </div>
-                        <span className="badge" style={{ background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: sc.dot, display: 'inline-block' }}></span>
-                          {app.status}
-                        </span>
-                      </div>
-
-                      {/* Date / Time */}
-                      <div style={{ display: 'flex', gap: '28px', paddingTop: '4px' }}>
-                        <div>
-                          <div className="label">Date</div>
-                          <div className="value">{new Date(app.date).toDateString()}</div>
-                        </div>
-                        <div>
-                          <div className="label">Time</div>
-                          <div className="value">{app.startTime} – {app.endTime}</div>
-                        </div>
-                      </div>
-
-                      {/* Cancel Reason */}
-                      {app.status === "cancelled" && app.cancelReason && (
-                        <div className="cancel-reason-box">
-                          <div className="label" style={{ color: '#f87171', marginBottom: '4px' }}>
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ display: 'inline', marginRight: '5px', verticalAlign: 'middle' }}>
-                              <circle cx="12" cy="12" r="10" stroke="#f87171" strokeWidth="2"/>
-                              <path d="M12 8v4M12 16h.01" stroke="#f87171" strokeWidth="2" strokeLinecap="round"/>
-                            </svg>
-                            Cancel Reason
-                          </div>
-                          <p style={{ fontSize: '0.85rem', color: '#fca5a5' }}>{app.cancelReason}</p>
-                        </div>
-                      )}
-
-                      {/* Cancel History */}
-                      {app.cancelHistory && app.cancelHistory.length > 0 && (
-                        <div className="cancel-history-box">
-                          <div className="label" style={{ marginBottom: '10px' }}>
-                            Cancel History ({app.cancelHistory.length})
-                          </div>
-                          <div className="scroll-list">
-                            {app.cancelHistory.map((h, idx) => (
-                              <div key={idx} className="history-item">
-                                <span className="history-time mono">[{new Date(h.date).toLocaleString()}]</span>
-                                <span style={{ color: '#94a3b8' }}><span style={{ color: '#60a5fa', fontWeight: 600 }}>{h.cancelledBy}</span> — {h.reason}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <p className="text-[11px] font-mono text-blue-400 tracking-[0.18em] uppercase mb-1">Student Portal</p>
+            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
+              Appointment{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-700">History</span>
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">Review all your past and upcoming appointments</p>
+          </div>
+          <div className="flex gap-2.5 flex-wrap">
+            <button
+              onClick={() => navigate("/student")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-sm font-semibold shadow-sm hover:border-blue-300 hover:text-blue-600 hover:shadow-blue-100/60 hover:shadow-md transition-all duration-200"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Dashboard
+            </button>
+            <button
+              onClick={() => navigate("/student-progress")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white text-sm font-semibold shadow-md shadow-blue-200 hover:from-blue-600 hover:to-blue-800 hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M18 20V10M12 20V4M6 20v-6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              View Progress
+            </button>
           </div>
         </div>
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <Footer />
+        {/* ── Stat Cards ── */}
+        <div className="flex gap-3 flex-wrap">
+          <StatCard icon="📋" label="Total"     value={total}     bg="bg-white"       border="border-slate-100" textColor="text-slate-700" />
+          <StatCard icon="✅" label="Approved"  value={approved}  bg="bg-blue-50"     border="border-blue-100"  textColor="text-blue-600"  />
+          <StatCard icon="⏳" label="Pending"   value={pending}   bg="bg-amber-50"    border="border-amber-100" textColor="text-amber-600" />
+          <StatCard icon="✕"  label="Cancelled" value={cancelled} bg="bg-red-50"      border="border-red-100"   textColor="text-red-500"   />
+        </div>
+
+        {/* ── Appointments List ── */}
+        <div>
+          {/* Section Header */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="#3b82f6" strokeWidth="2"/>
+                <path d="M16 2v4M8 2v4M3 10h18" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <span className="text-base font-bold text-slate-800">All Appointments</span>
+            <div className="flex-1 h-px bg-slate-100" />
+            <span className="font-mono text-[11px] text-slate-300 flex-shrink-0">{total} records</span>
+          </div>
+
+          {/* Empty State */}
+          {appointments.length === 0 ? (
+            <div className="bg-white border border-slate-100 rounded-2xl shadow-sm p-16 text-center">
+              <div className="text-5xl mb-4">📭</div>
+              <p className="text-slate-400 text-sm mb-5">No appointment history found.</p>
+              <button
+                onClick={() => navigate("/book-appointment")}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 text-white text-sm font-semibold shadow-md shadow-blue-200 hover:from-blue-600 hover:to-blue-800 transition-all duration-200"
+              >
+                + Book Appointment
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {appointments.map((app) => (
+                <div
+                  key={app._id}
+                  className="bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-100 transition-all duration-200 overflow-hidden group"
+                >
+                  {/* Blue left accent bar */}
+                  <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+
+                  <div className="p-6 flex flex-col gap-5">
+
+                    {/* Card Header */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xl flex-shrink-0 shadow-sm">
+                          🎓
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800 leading-tight">
+                            {app.lecturer?.firstname} {app.lecturer?.lastname}
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Lecturer</p>
+                        </div>
+                      </div>
+                      <StatusBadge status={app.status} />
+                    </div>
+
+                    {/* Divider */}
+                    <div className="h-px bg-slate-50" />
+
+                    {/* Date & Time */}
+                    <div className="flex gap-8">
+                      <Field label="Date" value={new Date(app.date).toDateString()} />
+                      <Field label="Time" value={`${app.startTime} – ${app.endTime}`} mono />
+                    </div>
+
+                    {/* Cancel Reason */}
+                    {app.status === "cancelled" && app.cancelReason && (
+                      <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="#f87171" strokeWidth="2"/>
+                            <path d="M12 8v4M12 16h.01" stroke="#f87171" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-red-400">Cancel Reason</span>
+                        </div>
+                        <p className="text-sm text-red-500">{app.cancelReason}</p>
+                      </div>
+                    )}
+
+                    {/* Cancel History */}
+                    {app.cancelHistory?.length > 0 && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">
+                          Cancel History ({app.cancelHistory.length})
+                        </p>
+                        <div className="flex flex-col gap-2 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
+                          {app.cancelHistory.map((h, idx) => (
+                            <div key={idx} className="flex gap-2 text-xs pb-2 border-b border-slate-100 last:border-0 last:pb-0">
+                              <span className="font-mono text-slate-300 flex-shrink-0 text-[10px] mt-0.5">
+                                {new Date(h.date).toLocaleString()}
+                              </span>
+                              <span className="text-slate-500">
+                                <span className="text-blue-500 font-semibold">{h.cancelledBy}</span> — {h.reason}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </>
+
+      {/* ── Footer ── */}
+      <div className="relative z-10">
+        <Footer />
+      </div>
+    </div>
   );
 };
 
