@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { cloudinary } from "../middleware/cloudinaryUpload.js";
 
 
 export const registerUser = async (req, res) => {
@@ -291,6 +292,130 @@ export const getAllStudents = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch students",
+      status: "error"
+    });
+  }
+};
+
+/* ===============================
+UPLOAD PROFILE PICTURE
+================================= */
+
+// Helper: stream a Buffer to Cloudinary and return the result
+const streamToCloudinary = (buffer, options) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+    stream.end(buffer);
+  });
+
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No file uploaded",
+        status: "error"
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        status: "error"
+      });
+    }
+
+    // Delete old picture from Cloudinary before uploading new one
+    if (user.profilePicturePublicId) {
+      try {
+        await cloudinary.uploader.destroy(user.profilePicturePublicId);
+      } catch (err) {
+        console.error("Error deleting old image from Cloudinary:", err);
+      }
+    }
+
+    // Upload the buffer directly to Cloudinary
+    const result = await streamToCloudinary(req.file.buffer, {
+      folder: "booking_lectures_system/profile_pictures",
+      transformation: [{ width: 500, height: 500, crop: "limit" }],
+      resource_type: "image",
+    });
+
+    // Save the returned URL and public_id to the user document
+    user.profilePicture = result.secure_url;
+    user.profilePicturePublicId = result.public_id;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile picture uploaded successfully",
+      status: "success",
+      user: {
+        id: user._id,
+        email: user.email,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        profilePicture: user.profilePicture,
+        role: user.role,
+        department: user.department
+      }
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({
+      message: "Profile picture upload failed",
+      status: "error",
+      error: error.message
+    });
+  }
+};
+
+/* ===============================
+DELETE PROFILE PICTURE
+================================= */
+
+export const deleteProfilePicture = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+        status: "error"
+      });
+    }
+
+    // Delete picture from Cloudinary if a custom one exists
+    if (user.profilePicturePublicId) {
+      try {
+        await cloudinary.uploader.destroy(user.profilePicturePublicId);
+      } catch (err) {
+        console.error("Error deleting image from Cloudinary:", err);
+      }
+    }
+
+    // Reset to default profile picture
+    user.profilePicture = "https://res.cloudinary.com/dz1qj3x4h/image/upload/v1735681234/DefaultProfilePicture.png";
+    user.profilePicturePublicId = null;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile picture deleted successfully",
+      status: "success",
+      user: {
+        id: user._id,
+        profilePicture: user.profilePicture
+      }
+    });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({
+      message: "Profile picture deletion failed",
       status: "error"
     });
   }
