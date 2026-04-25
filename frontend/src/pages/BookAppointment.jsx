@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 
@@ -74,25 +75,73 @@ export default function BookAppointment() {
     finally { setLoadingAI(false); }
   };
 
-  const bookAppointment = async () => {
-    const msgErr = validateMessage(message);
-    const errs = {
-      lecturer: !selectedLecturer ? "Please select a lecturer before booking." : "",
-      slot: !selectedSlot ? "Please select a time slot before booking." : "",
-      message: msgErr,
-    };
-    setBookingErrors(errs);
-    setMessageTouched(true);
-    if (errs.lecturer || errs.slot || errs.message) return;
-    try {
-      await API.post("/appointments/book", { slotId: selectedSlot, message });
-      alert("Appointment booked successfully!");
-      setSelectedSlot(""); setMessage(""); setSlots([]);
-      setSelectedLecturer(""); setRecommendedLecturer(null); setRecommendedSlots([]);
-      setBookingErrors({ lecturer: "", slot: "", message: "" });
-      setMessageTouched(false);
-    } catch (e) { alert(e.response?.data?.message || "Booking failed"); }
+const bookAppointment = async () => {
+  const msgErr = validateMessage(message);
+  const errs = {
+    lecturer: !selectedLecturer ? "Please select a lecturer before booking." : "",
+    slot: !selectedSlot ? "Please select a time slot before booking." : "",
+    message: msgErr,
   };
+
+  setBookingErrors(errs);
+  setMessageTouched(true);
+
+  if (errs.lecturer || errs.slot || errs.message) {
+    Swal.fire({
+      title: "Incomplete Form",
+      text: "Please fill all required fields correctly.",
+      icon: "warning",
+      confirmButtonColor: "#1a1a2e",
+    });
+    return;
+  }
+
+  // 🔥 Confirmation before booking
+  const confirm = await Swal.fire({
+    title: "Confirm Booking?",
+    text: "Do you want to book this appointment?",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonColor: "#1a1a2e",
+    cancelButtonColor: "#9ca3af",
+    confirmButtonText: "Yes, Book it",
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    await API.post("/appointments/book", { slotId: selectedSlot, message });
+
+    // ✅ SUCCESS ALERT
+    Swal.fire({
+      title: "Success 🎉",
+      text: "Your appointment has been booked successfully.",
+      icon: "success",
+      confirmButtonColor: "#1a1a2e",
+      background: "#ffffff",
+      color: "#1a1a2e",
+    });
+
+    // Reset form
+    setSelectedSlot("");
+    setMessage("");
+    setSlots([]);
+    setSelectedLecturer("");
+    setRecommendedLecturer(null);
+    setRecommendedSlots([]);
+    setBookingErrors({ lecturer: "", slot: "", message: "" });
+    setMessageTouched(false);
+
+  } catch (e) {
+    // ❌ ERROR ALERT
+    Swal.fire({
+      title: "Booking Failed",
+      text: e.response?.data?.message || "Something went wrong. Please try again.",
+      icon: "error",
+      confirmButtonColor: "#dc2626",
+    });
+  }
+};
 
   const clearAI = () => {
     setRecommendedLecturer(null); setRecommendedSlots([]);
