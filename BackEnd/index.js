@@ -34,9 +34,20 @@ const server = http.createServer(app);
 ============================= */
 export const io = new Server(server, {
   cors: {
+<<<<<<< HEAD
     origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
+=======
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5177",
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
+>>>>>>> 76756af4de6936ccc0e1924604c02040004d70ce
 });
 
 /* =============================
@@ -70,8 +81,18 @@ io.on("connection", (socket) => {
 ============================= */
 app.use(
   cors({
+<<<<<<< HEAD
     origin: "http://localhost:5173",
     credentials: true,
+=======
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5177",
+      process.env.FRONTEND_URL || "http://localhost:5173"
+    ],
+    credentials: true
+>>>>>>> 76756af4de6936ccc0e1924604c02040004d70ce
   })
 );
 

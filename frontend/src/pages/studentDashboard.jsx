@@ -16,6 +16,13 @@ const StudentDashboard = () => {
   const [saveError, setSaveError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
+  // Profile picture states
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
+  const [avatarSuccess, setAvatarSuccess] = useState(false);
+  const [avatarHovered, setAvatarHovered] = useState(false);
+
   const [formData, setFormData] = useState({
     firstname: "", lastname: "", email: "", department: "",
   });
@@ -48,6 +55,7 @@ const StudentDashboard = () => {
   }, []);
 
   const viewReason = (reason) => { setReasonText(reason); setShowReasonModal(true); };
+
   const refreshAppointments = async () => {
     try { const res = await API.get("/appointments/student"); setAppointments(res.data); } catch (e) { console.error(e); }
   };
@@ -98,6 +106,54 @@ const StudentDashboard = () => {
     }
   };
 
+  // ── Avatar upload handler ──
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setAvatarError("Only JPG, PNG or WebP allowed.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("File must be under 5 MB.");
+      return;
+    }
+    setAvatarError("");
+    setAvatarSuccess(false);
+    setPreviewUrl(URL.createObjectURL(file));
+    setAvatarUploading(true);
+    try {
+      const data = new FormData();
+      data.append("profilePicture", file);
+      const res = await API.put("/auth/user/profile/picture", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setStudent(res.data.user);
+      setAvatarSuccess(true);
+      setTimeout(() => setAvatarSuccess(false), 3000);
+    } catch {
+      setAvatarError("Upload failed. Please try again.");
+      setPreviewUrl(null);
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    try {
+      setAvatarUploading(true);
+      await API.delete("/auth/user/profile/picture");
+      setPreviewUrl(null);
+      setStudent((prev) => ({ ...prev, profilePicture: null }));
+      setAvatarSuccess(false);
+    } catch {
+      setAvatarError("Failed to remove photo.");
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const statusConfig = {
     approved:  { bg: "#DBEAFE", border: "#BFDBFE", color: "#1D4ED8", dot: "#3B82F6", label: "Approved"  },
     completed: { bg: "#D1FAE5", border: "#A7F3D0", color: "#065F46", dot: "#10B981", label: "Completed" },
@@ -122,6 +178,8 @@ const StudentDashboard = () => {
 
   const filtered = activeTab === "all" ? appointments : appointments.filter(a => a.status === activeTab);
 
+  const currentPhoto = previewUrl || student?.profilePicture;
+
   if (loading) {
     return (
       <div style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif", background: "#F8F7F4", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -144,6 +202,8 @@ const StudentDashboard = () => {
 
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes errIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes successPop { 0% { opacity:0; transform:scale(0.7); } 60% { transform:scale(1.15); } 100% { opacity:1; transform:scale(1); } }
+        @keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
         /* Nav */
         .sd-nav-btn {
@@ -223,13 +283,82 @@ const StudentDashboard = () => {
         }
         .btn-feedback:hover { background: #FEF3C7; }
 
-        /* Avatar */
+        /* ── Avatar ── */
+        .sd-avatar-wrap { position: relative; flex-shrink: 0; width: 84px; height: 84px; }
+
         .sd-avatar {
-          width: 68px; height: 68px; border-radius: 50%;
+          width: 84px; height: 84px; border-radius: 50%;
           background: linear-gradient(135deg, #7c6af7, #a78bfa);
           display: flex; align-items: center; justify-content: center;
-          font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.5rem;
-          color: white; flex-shrink: 0; box-shadow: 0 6px 20px rgba(124,106,247,0.3);
+          font-family: 'Fraunces', serif; font-weight: 900; font-size: 1.6rem;
+          color: white; overflow: hidden; cursor: pointer;
+          border: 3px solid white;
+          box-shadow: 0 0 0 2.5px #DDD6FE, 0 6px 20px rgba(124,106,247,0.25);
+          transition: box-shadow 0.2s, transform 0.2s;
+          position: relative;
+        }
+        .sd-avatar:hover {
+          box-shadow: 0 0 0 3px #7c6af7, 0 8px 28px rgba(124,106,247,0.35);
+          transform: scale(1.03);
+        }
+        .sd-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+        .sd-avatar-overlay {
+          position: absolute; inset: 0; border-radius: 50%;
+          background: rgba(26,26,46,0.62);
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          opacity: 0; transition: opacity 0.18s; pointer-events: none;
+        }
+        .sd-avatar:hover .sd-avatar-overlay { opacity: 1; }
+        .sd-avatar-overlay-txt {
+          color: white; font-size: 8.5px; font-weight: 700;
+          letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px;
+          font-family: 'DM Sans', sans-serif;
+        }
+
+        .sd-avatar-badge {
+          position: absolute; bottom: 2px; right: 2px;
+          width: 24px; height: 24px; border-radius: 50%;
+          background: #7c6af7; border: 2.5px solid white;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; box-shadow: 0 2px 8px rgba(124,106,247,0.4);
+          transition: background 0.15s, transform 0.15s;
+          z-index: 2;
+        }
+        .sd-avatar-badge:hover { background: #5b4fc4; transform: scale(1.12); }
+
+        .sd-avatar-loading {
+          position: absolute; inset: 0; border-radius: 50%;
+          background: rgba(26,26,46,0.55);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 3;
+        }
+
+        /* Avatar action buttons */
+        .btn-avatar-upload {
+          font-size: 0.78rem; font-weight: 600; padding: 7px 14px; border-radius: 9px;
+          cursor: pointer; border: none; background: #1a1a2e; color: white;
+          font-family: 'DM Sans',sans-serif; transition: all 0.15s;
+          display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-avatar-upload:hover { background: #2d2d4e; transform: translateY(-1px); }
+        .btn-avatar-upload:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-avatar-remove {
+          font-size: 0.78rem; font-weight: 500; padding: 7px 12px; border-radius: 9px;
+          cursor: pointer; border: 1.5px solid #E8E6E0; background: white; color: #888;
+          font-family: 'DM Sans',sans-serif; transition: all 0.15s;
+          display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-avatar-remove:hover { border-color: #FECACA; color: #DC2626; background: #FEF2F2; }
+        .btn-avatar-remove:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .avatar-success-badge {
+          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 0.73rem; color: #065F46; font-weight: 600;
+          background: #D1FAE5; border: 1px solid #A7F3D0;
+          padding: 4px 10px; border-radius: 99px;
+          animation: successPop 0.3s ease;
         }
 
         /* Modal */
@@ -281,12 +410,17 @@ const StudentDashboard = () => {
           box-shadow: 0 4px 14px rgba(26,26,46,0.25);
         }
         .btn-book-empty:hover { background: #2d2d4e; transform: translateY(-1px); }
+
+        /* Drop zone */
+        .avatar-dropzone-hint {
+          font-size: 0.7rem; color: #aaa; margin-top: 5px;
+          display: flex; align-items: center; gap: 4px;
+        }
       `}</style>
 
       {/* ── Nav ── */}
       <nav style={{ background: "white", borderBottom: "1px solid #E8E6E0", padding: "14px 24px", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-          {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 28, height: 28, borderRadius: 7, background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
@@ -298,7 +432,6 @@ const StudentDashboard = () => {
             <span style={{ color: "#E8E6E0", margin: "0 4px" }}>·</span>
             <span style={{ fontSize: "0.8rem", color: "#888", fontWeight: 500 }}>Student Dashboard</span>
           </div>
-          {/* Nav actions */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="sd-nav-btn" onClick={refreshAppointments}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -340,18 +473,129 @@ const StudentDashboard = () => {
 
         {/* ── Profile card ── */}
         <div className="section-card">
-          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-            <div className="sd-avatar">
-              {student?.profilePicture
-                ? <img src={student.profilePicture} alt="avatar" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                : <span>{student?.firstname?.[0] ?? "?"}</span>
-              }
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 22, flexWrap: "wrap" }}>
+
+            {/* Avatar zone */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, flexShrink: 0 }}>
+              <div className="sd-avatar-wrap">
+                {/* Clickable avatar */}
+                <div
+                  className="sd-avatar"
+                  onClick={() => !avatarUploading && document.getElementById("avatarFileInput").click()}
+                  style={{ cursor: avatarUploading ? "not-allowed" : "pointer" }}
+                >
+                  {currentPhoto ? (
+                    <img src={currentPhoto} alt="Profile" />
+                  ) : (
+                    <span>{student?.firstname?.[0] ?? "?"}</span>
+                  )}
+                  {/* Camera overlay on hover */}
+                  {!avatarUploading && (
+                    <div className="sd-avatar-overlay">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="13" r="4" stroke="white" strokeWidth="2"/>
+                      </svg>
+                      <span className="sd-avatar-overlay-txt">{currentPhoto ? "Change" : "Upload"}</span>
+                    </div>
+                  )}
+                  {/* Upload spinner overlay */}
+                  {avatarUploading && (
+                    <div className="sd-avatar-loading">
+                      <svg style={{ animation: "spin 0.7s linear infinite" }} width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.25)" strokeWidth="3"/>
+                        <path d="M12 2a10 10 0 0110 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* + badge */}
+                {!avatarUploading && (
+                  <div
+                    className="sd-avatar-badge"
+                    onClick={() => document.getElementById("avatarFileInput").click()}
+                    title="Upload photo"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons below avatar */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <button
+                  className="btn-avatar-upload"
+                  disabled={avatarUploading}
+                  onClick={() => document.getElementById("avatarFileInput").click()}
+                >
+                  {avatarUploading ? (
+                    <>
+                      <svg style={{ animation: "spin 0.7s linear infinite" }} width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3"/>
+                        <path d="M12 2a10 10 0 0110 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+                      </svg>
+                      Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      {currentPhoto ? "Change Photo" : "Upload Photo"}
+                    </>
+                  )}
+                </button>
+
+                {currentPhoto && !avatarUploading && (
+                  <button className="btn-avatar-remove" onClick={handleRemoveAvatar} disabled={avatarUploading}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                      <polyline points="3 6 5 6 21 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                    Remove
+                  </button>
+                )}
+
+                {/* Status messages */}
+                {avatarSuccess && (
+                  <span className="avatar-success-badge">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#065F46" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Photo updated!
+                  </span>
+                )}
+                {avatarError && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.7rem", color: "#DC2626", animation: "errIn 0.18s ease", textAlign: "center", maxWidth: 110 }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10" stroke="#DC2626" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#DC2626" strokeWidth="2" strokeLinecap="round"/></svg>
+                    {avatarError}
+                  </div>
+                )}
+
+                <div className="avatar-dropzone-hint">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#bbb" strokeWidth="2"/><path d="M12 8v4M12 16h.01" stroke="#bbb" strokeWidth="2" strokeLinecap="round"/></svg>
+                  JPG, PNG, WebP · 5 MB max
+                </div>
+              </div>
+
+              {/* Hidden file input */}
+              <input
+                id="avatarFileInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={handleAvatarChange}
+              />
             </div>
+
+            {/* Profile info */}
             <div style={{ flex: 1, minWidth: 180 }}>
               <h2 style={{ fontFamily: "Fraunces,serif", fontWeight: 700, fontSize: "1.25rem", color: "#1a1a2e", marginBottom: 10 }}>
                 {student?.firstname} {student?.lastname}
               </h2>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginBottom: 16 }}>
                 {[["Email", student?.email], ["Role", student?.role], ["Department", student?.department]].map(([label, value]) => (
                   <div key={label}>
                     <div style={{ fontSize: "0.68rem", color: "#999", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{label}</div>
@@ -359,7 +603,24 @@ const StudentDashboard = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Profile completion hint */}
+              {!currentPhoto && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  background: "#F5F3FF", border: "1px solid #DDD6FE",
+                  borderRadius: 10, padding: "8px 13px", fontSize: "0.75rem", color: "#5b4fc4",
+                  fontWeight: 500, animation: "fadeSlideIn 0.4s ease",
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="#7c6af7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="13" r="4" stroke="#7c6af7" strokeWidth="2"/>
+                  </svg>
+                  Add a profile photo to personalize your account
+                </div>
+              )}
             </div>
+
             <button className="sd-nav-btn" onClick={openEditModal} style={{ flexShrink: 0 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
               Edit Profile
