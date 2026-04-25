@@ -157,6 +157,8 @@ export default function Login() {
             </button>
           </form>
 
+          <button onClick={() => navigate("/")} className="auth-btn" style={{ marginTop: 12 }}>Go to Home</button>
+
           <p style={{ textAlign: "center", fontSize: "0.85rem", color: "#999", marginTop: 28 }}>
             No account yet?{" "}
             <span onClick={() => navigate("/register")} style={{ color: "#7c6af7", fontWeight: 600, cursor: "pointer" }}>Create one free</span>

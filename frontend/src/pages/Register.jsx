@@ -185,6 +185,8 @@ export default function Register() {
             </button>
           </form>
 
+          <button onClick={() => navigate("/")} className="auth-btn" style={{ marginTop: 12 }}>Go to Home</button>
+
           <p style={{ textAlign: "center", fontSize: "0.85rem", color: "#999", marginTop: 22 }}>
             Already have an account?{" "}
             <span onClick={() => navigate("/login")} style={{ color: "#7c6af7", fontWeight: 600, cursor: "pointer" }}>Sign in</span>
