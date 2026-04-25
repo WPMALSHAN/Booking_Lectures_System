@@ -142,7 +142,7 @@ const Footer = () => {
                   { label: "Home",        path: "/"            },
                   { label: "Lecturers",   path: "/lecturers"   },
                   { label: "Departments", path: "/departments" },
-                  { label: "Contact Us",  path: "/contact"     },
+                  { label: "Contact Us",  path: "/contactus"     },
                 ].map(({ label, path }) => (
                   <span key={path} className="footer-link" onClick={() => navigate(path)}>
                     {label}

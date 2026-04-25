@@ -306,6 +306,12 @@ const StudentDashboard = () => {
             </button>
             <button className="sd-nav-btn" onClick={() => navigate("/student-history")}>📜 History</button>
             <button className="sd-nav-btn" onClick={() => navigate("/feedback-history")}>💬 Feedback</button>
+            <button
+              onClick={() => navigate("/student/contact")}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Contact Support
+            </button>
             <button className="sd-nav-btn-primary" onClick={() => navigate("/book-appointment")}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/></svg>
               Book Appointment
@@ -413,6 +419,8 @@ const StudentDashboard = () => {
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="white" strokeWidth="2.5" strokeLinecap="round"/></svg>
                     Book Appointment
                   </button>
+
+                  
                 )}
               </div>
             ) : (

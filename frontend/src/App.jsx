@@ -16,6 +16,14 @@ import Lectures from "./pages/Lectures";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminStudents from "./pages/AdminStudents";
 import AdminLecturers from "./pages/Adminlecturers";
+import AdminMessages from "./pages/AdminMessages";
+import Contact from "./pages/Contact";
+import AdminFeedback from "./pages/Adminfeedback";
+import ContactUs from "./pages/ContactUs";
+import DepartmentsPage from "./pages/Departmentspage";
+import AdminAppointments from "./pages/AdminAppointments";
+
+
 
 function App() {
   return (
@@ -49,8 +57,17 @@ function App() {
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/admin/students" element={<AdminStudents />} />
       <Route path="/admin/lecturers" element={<AdminLecturers />} />
+      <Route path="/admin/chat" element={<AdminMessages />} />
+      <Route path="/student/contact" element={<Contact />} />
+      <Route path="/admin/contact" element={<Contact />} />
+      <Route path="/admin/chat" element={<AdminMessages />} />
       <Route path="/" element={<Home />} />
       <Route path="*" element={<Home />} />
+      <Route path="/admin/feedback" element={<AdminFeedback />} />
+      <Route path="/contactus" element={<ContactUs />} />
+      <Route path="/admin/contact" element={<Contact />} />
+      <Route path="/departments" element={<DepartmentsPage />} />
+      <Route path="/admin/appointments" element={<AdminAppointments />} />
     </Routes>
   );
 }
