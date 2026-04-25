@@ -274,7 +274,7 @@ const bookAppointment = async () => {
             ) : <>✨  Recommend Lecturer</>}
           </button>
           <button className="btn-ai" onClick={aiRecommendSlot} disabled={loadingAI}>
-            🕐  Recommend Time Slot
+            🕐  Recommend Time Slote
           </button>
         </div>
 
