@@ -136,7 +136,7 @@ export default function Feedback() {
                 </>
               ) : (
                 <>
-                  Submit Feedback
+                  Submit  your Feedback
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </>
               )}
