@@ -325,7 +325,7 @@ export default function Login() {
                 cursor: "pointer",
               }}
             >
-              Create one free
+              Create one account free
             </span>
           </p>
         </div>
