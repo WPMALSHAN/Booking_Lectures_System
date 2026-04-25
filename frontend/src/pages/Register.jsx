@@ -236,6 +236,33 @@ export default function Register() {
               </div>
             ))}
           </div>
+          <div className="rg-side" style={{ background: "#1a1a2e", padding: "52px 44px", display: "flex", flexDirection: "column", justifyContent: "space-between", position: "relative", overflow: "hidden" }}>
+            <button
+              onClick={() => navigate(-1)}
+              style={{
+                position: "absolute",
+                top: 20,
+                left: 20,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 12px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.05)",
+                backdropFilter: "blur(6px)",
+                cursor: "pointer",
+                fontSize: "0.8rem",
+                color: "white",
+                zIndex: 2
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M15 18l-6-6 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Back
+            </button>
+          </div>
         </div>
       </div>
     </div>
