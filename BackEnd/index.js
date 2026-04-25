@@ -7,38 +7,58 @@ import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
 
+/* =============================
+   ROUTES IMPORT
+============================= */
 import authRoutes from "./Routes/authRoutes.js";
-import verifyToken from "./middleware/verifyToken.js";
 import availabilityRoutes from "./Routes/availabilityRoutes.js";
 import appointmentRoutes from "./Routes/appointmentRoutes.js";
 import aiRoutes from "./Routes/aiRoutes.js";
-import "./utils/reminderCron.js";
 import feedbackRoutes from "./Routes/feedbackRoutes.js";
 import dashboardRoutes from "./Routes/dashboardRoutes.js";
-import { errorHandler } from "./middleware/errorHandler.js";
-import adminRoute from "./Routes/adminRoute.js"
+import adminRoute from "./Routes/adminRoute.js";
+import contactRoutes from "./Routes/contactRoutes.js";
 
-const app = express();
+import verifyToken from "./middleware/verifyToken.js";
+import "./utils/reminderCron.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 /* =============================
-   CREATE HTTP SERVER
+   APP + SERVER
 ============================= */
-
+const app = express();
 const server = http.createServer(app);
 
 /* =============================
    SOCKET.IO SETUP
 ============================= */
-
 export const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PUT", "DELETE"]
-  }
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
 });
 
+/* =============================
+   SOCKET REAL-TIME CHAT
+============================= */
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  // Join chat room (each thread = room)
+  socket.on("joinThread", (threadId) => {
+    socket.join(threadId);
+    console.log(`Joined thread: ${threadId}`);
+  });
+
+  // Send message in real-time
+  socket.on("sendMessage", ({ threadId, message, sender }) => {
+    io.to(threadId).emit("newMessage", {
+      message,
+      sender,
+      createdAt: new Date(),
+    });
+  });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
@@ -48,58 +68,53 @@ io.on("connection", (socket) => {
 /* =============================
    MIDDLEWARE
 ============================= */
-
 app.use(
   cors({
     origin: "http://localhost:5173",
-    credentials: true
+    credentials: true,
   })
 );
 
 app.use(express.json());
 
 /* =============================
-   DATABASE
+   DATABASE CONNECTION
 ============================= */
-
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.error("MongoDB connection error:", err));
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 /* =============================
-   ROUTES
+   API ROUTES
 ============================= */
-
 app.use("/api/auth", authRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/admin", adminRoute );
-
+app.use("/api/admin", adminRoute);
+app.use("/api/contact", contactRoutes);
 
 /* =============================
    TEST ROUTE
 ============================= */
-
 app.get("/api/test", verifyToken, (req, res) => {
   res.json({
     message: "Protected route working",
-    user: req.user
+    user: req.user,
   });
 });
 
 /* =============================
    ERROR HANDLER
 ============================= */
-
 app.use(errorHandler);
 
 /* =============================
    START SERVER
 ============================= */
-
 server.listen(7000, () => {
   console.log("Server running on port 7000");
 });
