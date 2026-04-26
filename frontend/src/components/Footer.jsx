@@ -127,7 +127,7 @@ const Footer = () => {
                     <circle cx="12" cy="12" r="3" fill="white" fillOpacity="0.6"/>
                   </svg>
                 </div>
-                AcadPortal
+                AcadPortaliiiiii
               </div>
               <p className="footer-desc">
                 A modern platform for students and lecturers to manage appointments, schedules, and academic sessions — easily and efficiently.
